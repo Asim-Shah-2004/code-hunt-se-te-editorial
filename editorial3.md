@@ -1,130 +1,136 @@
-# Minimum Cost Cake Cutting: Editorial Solution
+# Maximum Travel Content Score: Bottom-Up Approach
 ## Problem Statement
-Justin needs to cut a rectangular cake into 1×1 squares with minimum cost, where horizontal and vertical cuts have different costs, and each cut extends fully across the cake.
+Given a grid of cities and days, find the maximum score Tasha can achieve by either staying in a city (earning local content points) or traveling between cities (earning journey points) over a fixed number of days.
 
-## Intuition
-This is a greedy problem where:
-1. Each cut multiplies previous cuts
-2. Higher cost cuts should be made earlier
-3. The number of pieces a cut creates affects total cost
+## Solution Approach
+### Bottom-Up Dynamic Programming
+We solve this problem using a bottom-up dynamic programming approach where we iteratively build the solution from day 1 to day k, considering all possible states and transitions.
 
-## Key Insights
-1. **Multiplication Effect**:
-   - Each horizontal cut crosses all vertical sections
-   - Each vertical cut crosses all horizontal sections
-   - Later cuts cost more in total due to multiplication
+### Key Concepts
+1. **State Definition**
+   - `dp[day][city]`: Maximum score achievable on day `day` when ending in `city`
 
-2. **Greedy Choice Property**:
-   - Always make the highest cost cut first
-   - This minimizes the multiplication effect on expensive cuts
-   - Can prove optimality through exchange argument
+2. **Transitions**
+   - Stay in current city: `dp[day+1][city] = max(dp[day][city] + stay[day][city], dp[day+1][city])`
+   - Travel to another city: `dp[day+1][nextCity] = max(dp[day][city] + travel[city][nextCity], dp[day+1][nextCity])`
 
-## Greedy Solution
-### Algorithm
-1. Sort both cut arrays in descending order
-2. Keep track of current pieces count:
-   - hp (horizontal pieces)
-   - vp (vertical pieces)
-3. Always choose higher cost between available cuts
-4. Multiply current cut cost by opposite direction piece count
+3. **Base Case**
+   - `dp[0][city] = 0` for all cities
 
-### Proof of Correctness
-Let's prove why greedy approach works:
-
-1. **Exchange Argument**:
-   Suppose optimal solution doesn't make highest cost cut first.
-   - Let C1 be highest cost cut
-   - Let C2 be cut made before C1
-   - Total = (C2 × 1) + (C1 × 2)
-   - If we swap: (C1 × 1) + (C2 × 2)
-   - Difference = C1 - C2 > 0
-   Therefore, making highest cost cut first always better.
-
-## Implementation Analysis
+### Implementation
 ```cpp
 class Solution {
 public:
-    long long minimumCost(int m, int n, vector<int>& horizontalCut, 
-                         vector<int>& verticalCut) {
-        // Sort cuts in descending order
-        sort(horizontalCut.rbegin(), horizontalCut.rend());
-        sort(verticalCut.rbegin(), verticalCut.rend());
+    /**
+     * Calculates maximum possible score for Tasha's travel content
+     * 
+     * @param n Number of cities
+     * @param k Number of days
+     * @param stay Points for staying in cities[k][n]
+     * @param travel Points for traveling between cities[n][n]
+     * @return Maximum achievable score
+     * 
+     * Time Complexity: O(k * n^2)
+     * Space Complexity: O(k * n)
+     */
+    long long maxTravelScore(int n, int k, 
+                           vector<vector<int>>& stay, 
+                           vector<vector<int>>& travel) {
+        // DP table initialization
+        long long dp[205][205] = {{0}};
+        long long ans = 0;
         
-        // Track pieces count
-        int hp = 1;  // horizontal pieces
-        int vp = 1;  // vertical pieces
-        long long cost = 0;
-        
-        int i = 0, j = 0;  // pointers for both arrays
-        
-        // Process cuts in decreasing order of cost
-        while (i < horizontalCut.size() && j < verticalCut.size()) {
-            if (horizontalCut[i] > verticalCut[j]) {
-                // Make horizontal cut
-                cost += (long long)horizontalCut[i] * vp;
-                i++;
-                hp++;
-            } else {
-                // Make vertical cut
-                cost += (long long)verticalCut[j] * hp;
-                j++;
-                vp++;
+        // Bottom-up calculation
+        for(int day = 0; day < k; day++) {
+            for(int city = 0; city < n; city++) {
+                // Option 1: Stay in current city
+                dp[day + 1][city] = max(dp[day][city] + stay[day][city], 
+                                      dp[day + 1][city]);
+                ans = max(ans, dp[day + 1][city]);
+                
+                // Option 2: Travel to another city
+                for(int nextCity = 0; nextCity < n; nextCity++) {
+                    dp[day + 1][nextCity] = max(dp[day][city] + travel[city][nextCity],
+                                              dp[day + 1][nextCity]);
+                    ans = max(ans, dp[day + 1][nextCity]);
+                }
             }
         }
-        
-        // Process remaining horizontal cuts
-        while (i < horizontalCut.size()) {
-            cost += (long long)horizontalCut[i] * vp;
-            i++;
-            hp++;
-        }
-        
-        // Process remaining vertical cuts
-        while (j < verticalCut.size()) {
-            cost += (long long)verticalCut[j] * hp;
-            j++;
-            vp++;
-        }
-        
-        return cost;
+        return ans;
     }
 };
+
+// Driver code
+void solve() {
+    int n, k;
+    cin >> n >> k;
+    
+    // Input stay points
+    vector<vector<int>> stay(k, vector<int>(n));
+    for(int i = 0; i < k; i++) {
+        for(int j = 0; j < n; j++) {
+            cin >> stay[i][j];
+        }
+    }
+    
+    // Input travel points
+    vector<vector<int>> travel(n, vector<int>(n));
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < n; j++) {
+            cin >> travel[i][j];
+        }
+    }
+    
+    Solution solution;
+    cout << solution.maxTravelScore(n, k, stay, travel) << endl;
+}
+
+int main() {
+    solve();
+    return 0;
+}
 ```
 
-### Code Breakdown
-1. **Sorting**:
-   - Use reverse iterators for descending sort
-   - Ensures highest costs processed first
-
-2. **Piece Tracking**:
-   - hp: count of horizontal pieces
-   - vp: count of vertical pieces
-   - Updated after each cut
-
-3. **Cost Calculation**:
-   - Use long long for large numbers
-   - Multiply cut cost by opposite direction pieces
-
 ## Complexity Analysis
-- **Time Complexity**: O(m log m + n log n)
-  * Sorting both arrays dominates
-  * While loop is O(m + n)
+- **Time Complexity**: O(k * n²)
+  - For each day (k), we consider each city (n) and possible transitions to other cities (n)
+  - Total: k * n * n operations
+  
+- **Space Complexity**: O(k * n)
+  - DP table size: k days × n cities
+  - Additional space for input arrays: O(k*n + n²)
 
-- **Space Complexity**: O(1)
-  * Only constant extra space needed
-  * Input arrays not counted
+## Example Test Case
+```
+Input:
+2 3  // n = 2 cities, k = 3 days
+1 2  // stay points for day 1
+3 1  // stay points for day 2
+2 3  // stay points for day 3
+0 5  // travel points
+4 0  // travel points
 
-## Example Walkthrough
-Input: m=3, n=2, horizontalCut=[1,3], verticalCut=[5]
+Output:
+11   // Maximum achievable score
+```
 
-1. After sorting:
-   - horizontalCut = [3,1]
-   - verticalCut = [5]
+### Test Case Explanation
+1. Day 1: Start in city 1, score = 2
+2. Day 2: Travel to city 0, score = 2 + 4 + 3 = 9
+3. Day 3: Stay in city 0, score = 9 + 2 = 11
 
-2. Steps:
-   ```
-   1. vertical(5): cost = 5×1 = 5, hp=1, vp=2
-   2. horizontal(3): cost += 3×2 = 6, hp=2, vp=2
-   3. horizontal(1): cost += 1×2 = 2, hp=3, vp=2
-   Total: 13
-   ```
+## Common Pitfalls
+1. Not initializing the DP table properly
+2. Forgetting to update the maximum answer after each state transition
+3. Not handling the case when staying in the same city
+4. Integer overflow (use long long for large test cases)
+
+## Optimization Tips
+1. Use pre-computed arrays to store cumulative scores
+2. Consider using space optimization to reduce memory usage
+3. Cache frequently accessed values to improve performance
+
+## Follow-up Questions
+1. Can you modify the solution to also return the path taken?
+2. How would you handle negative scores?
+3. What if there are restrictions on consecutive stays in the same city?
